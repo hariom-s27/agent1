@@ -1,0 +1,9 @@
+.venv
+.venv_clean
+__pycache__
+*.pyc
+.git
+data
+.env
+*.egg-info
+node_modules
