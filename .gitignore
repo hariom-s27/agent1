@@ -1,0 +1,18 @@
+# Secrets — NEVER commit these
+.env
+
+# Python virtual environment
+.venv/
+.venv_clean/
+
+# Local data (the memory database lives here)
+data/
+
+# Python cache / build junk
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
