@@ -10,7 +10,7 @@ This file documents the layout of the repository and the purpose of each top-lev
 - `Dockerfile`: Optional container image to run the project and notebook.
 - `.dockerignore`: Files excluded from Docker build.
 - `.env.example`: Template for local environment variables (do NOT commit secrets).
-- `code.ipynb`: Primary notebook containing project code and examples. This is the source notebook to edit.
+- `notebooks/code.ipynb`: Primary notebook containing project code and examples. This is the source notebook to edit.
 - `scripts/`: Helper scripts for local setup and development.
   - `setup-venv.ps1` — create venv, install deps, register kernel.
   - `start-notebook.ps1` — start Jupyter with the `sidekick` kernel.
