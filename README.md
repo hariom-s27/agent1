@@ -41,3 +41,16 @@ pip install pytest
 pytest -q
 ```
 
+## Repository structure
+
+See [docs/STRUCTURE.md](docs/STRUCTURE.md) for a short description of the top-level files and folders, and what should and should not be committed.
+
+Cleaning generated files
+
+There's a helper script at `scripts/clean-repo.ps1` to remove common generated files (Python caches, notebook checkpoints, and temporary files). Run it from the repository root in PowerShell:
+
+```powershell
+.\scripts\clean-repo.ps1
+```
+
+
