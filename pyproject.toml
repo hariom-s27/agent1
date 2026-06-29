@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A proactive personal agent with a three-scope memory layer."
 requires-python = ">=3.11"
 dependencies = [
-    "langgraph>=0.3",
+    "langgraph>=1.2.6",
     "langgraph-checkpoint>=2",
     "openai>=1.40",
     "json-repair>=0.30.0",
