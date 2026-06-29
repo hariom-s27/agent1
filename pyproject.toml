@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-settings>=2",
     "python-dotenv>=1",
     "icalendar>=5",
-    "recurring-ical-events>=2",
+    "recurring-ical-events>=3.8.2",
 ]
 
 [project.optional-dependencies]
