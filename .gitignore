@@ -16,3 +16,8 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Local scratch scripts
+try_llm.py
+
+try_llm.py
