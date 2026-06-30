@@ -21,6 +21,7 @@ class Engine:
         self._seen_signal_ids: set[str] = set()
         self._lock = threading.Lock()
         self._scheduler: BackgroundScheduler | None = None
+        self._running = False
 
 
     def inject_signal(self, signal):
@@ -31,6 +32,8 @@ class Engine:
         """One heartbeat: gather signals, run the graph, store results. Thread-safe + crash-safe."""
         with self._lock:                      # only one tick touches shared state at a time
             try:
+                if not self._running:
+                    return []
                 self._tick_count += 1
                 signals = gather_signals(self.connectors) + self._extra_signals
                 self._extra_signals = []
@@ -59,9 +62,11 @@ class Engine:
             max_instances=1,    # never run two ticks at once
             coalesce=True,      # if ticks pile up, run only one
         )
+        self._running = True
         self._scheduler.start()
 
     def stop_scheduler(self):
         """Stop the timer cleanly (called on shutdown)."""
+        self._running = False
         if self._scheduler:
             self._scheduler.shutdown(wait=False)        
