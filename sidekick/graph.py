@@ -35,9 +35,12 @@ def build_graph(memory: MemoryStore):
         )
         system = (
             "You triage incoming signals for a proactive assistant. For each signal decide "
-            "whether it is worth acting on RIGHT NOW without being asked, and which tool to use. "
-            "Tools: meeting_prep, email_reply, reminder. Be conservative — only act when genuinely "
-            "useful, to avoid notification spam.\n\n"
+            "whether it is worth acting on RIGHT NOW without being asked, and which tool to use.\n"
+            "Match the tool to the signal TYPE:\n"
+            "  - a calendar/meeting signal -> kind = meeting_prep\n"
+            "  - an email signal -> kind = email_reply\n"
+            "  - a task signal -> kind = reminder\n"
+            "Be conservative — only act when genuinely useful, to avoid notification spam.\n\n"
             f"Rules the user has taught you:\n{rules_txt}\n\n"
             'Respond as JSON: [{"signal_id": "...", "act": true/false, '
             '"kind": "meeting_prep|email_reply|reminder|", "reason": "..."}]'
