@@ -61,7 +61,7 @@ def _parse_json(raw: str):
 
 def complete_json(system: str, user: str, *, model: str,
                   max_tokens: int = 1024, temperature: float = 0.0,
-                  retries: int = 2):
+                  retries: int = 2, fallback=None):
     """Get JSON from the model. Instruct hard, parse via the ladder, retry on failure."""
     system = system + "\n\nReturn ONLY valid JSON. No prose, no markdown, no code fences."
     last_error = None
@@ -73,8 +73,9 @@ def complete_json(system: str, user: str, *, model: str,
         except Exception as e:
             last_error = e
             time.sleep(1.5 * (attempt + 1))  # back off a bit longer each try
+    if fallback is not None:
+        return fallback
     raise last_error
-
 if __name__ == "__main__":
     s = get_settings()
     print(complete("You are concise.", "Say hello in one short sentence.", model=s.triage_model))
