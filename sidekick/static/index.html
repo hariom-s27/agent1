@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sidekick</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { font: 15px/1.6 system-ui, -apple-system, sans-serif; max-width: 780px;
@@ -17,18 +18,23 @@
     button.ghost { background: #888; }
     input { padding: 9px; flex: 1; min-width: 220px; border: 1px solid #ccc; border-radius: 8px; }
     .status { font-size: 13px; color: #0a7; min-height: 18px; }
-    h3 { margin: 22px 0 6px; }
-    .card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+    h3 { margin: 22px 0 6px; display: flex; align-items: center; gap: 8px; }
+    .count { font-size: 12px; color: #999; font-weight: 400; }
+    .card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 12px 16px; margin: 10px 0; }
     .kind { font-size: 11px; color: #fff; background: #4a5; padding: 2px 8px; border-radius: 99px;
             text-transform: uppercase; letter-spacing: .03em; }
     .kind.email_reply { background: #47a; } .kind.reminder { background: #a74; }
-    pre { white-space: pre-wrap; word-wrap: break-word; background: #fafafa; padding: 10px;
-          border-radius: 8px; font: 13px/1.5 ui-monospace, monospace; margin: 8px 0; }
+    .body { background: #fafafa; padding: 10px 14px; border-radius: 8px; margin: 8px 0;
+            font-size: 14px; max-height: 260px; overflow-y: auto; }
+    .body p { margin: 6px 0; } .body strong { color: #111; }
+    .body h1,.body h2,.body h3 { font-size: 15px; margin: 8px 0 4px; }
+    .body ul,.body ol { margin: 6px 0; padding-left: 20px; }
     .actbtns button { padding: 5px 12px; font-size: 13px; margin-right: 6px; }
     .st { font-size: 12px; color: #999; }
     .mem { font-size: 13px; }
     .scope { font-weight: 600; margin-top: 12px; text-transform: capitalize; color: #333; }
     .scope .n { color: #999; font-weight: 400; }
+    .mem .item { padding: 1px 0; color: #444; }
     .empty { color: #999; font-style: italic; }
   </style>
 </head>
@@ -46,7 +52,7 @@
     <button onclick="inject()">Add &amp; run</button>
   </div>
 
-  <h3>What Sidekick did</h3>
+  <h3>What Sidekick did <span id="nCount" class="count"></span></h3>
   <div id="notifs"><p class="empty">Nothing yet — click "Run a cycle".</p></div>
 
   <h3>What Sidekick remembers</h3>
@@ -55,19 +61,27 @@
 <script>
 const $ = id => document.getElementById(id);
 let busy = false;
+const MAX_SHOWN = 10;   // cap how many notifications we display (newest first)
 
-function setStatus(msg) { $('status').textContent = msg; }
-function setBusy(on, msg) {
-  busy = on; $('runBtn').disabled = on; setStatus(on ? (msg || 'Working… (the model is thinking)') : '');
+function setStatus(m){ $('status').textContent = m; }
+function setBusy(on,m){ busy=on; $('runBtn').disabled=on; setStatus(on?(m||'Working… (the model is thinking)'):''); }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderMarkdown(s){
+  // escape raw HTML first (LLM output is untrusted), then format the markdown
+  const safe = (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  try { return marked.parse(safe); } catch { return escapeHtml(s); }
 }
 
-async function refresh() {
+async function refresh(){
   try {
-    const n = await (await fetch('/notifications')).json();
-    $('notifs').innerHTML = n.length ? n.map((a, i) => `
+    let n = await (await fetch('/notifications')).json();
+    $('nCount').textContent = n.length ? `(showing newest ${Math.min(n.length,MAX_SHOWN)} of ${n.length})` : '';
+    const shown = n.slice(0, MAX_SHOWN);   // only render the newest few — no giant wall
+    $('notifs').innerHTML = shown.length ? shown.map((a,i) => `
       <div class="card">
-        <span class="kind ${a.kind}">${a.kind.replace('_',' ')}</span> <b>${a.summary}</b>
-        <pre>${escapeHtml(a.body)}</pre>
+        <span class="kind ${a.kind}">${a.kind.replace('_',' ')}</span> <b>${escapeHtml(a.summary)}</b>
+        <div class="body">${renderMarkdown(a.body)}</div>
         <div class="actbtns">
           <button onclick="respond(${i},'approve')">Approve</button>
           <button class="ghost" onclick="respond(${i},'dismiss')">Dismiss</button>
@@ -76,47 +90,33 @@ async function refresh() {
       </div>`).join('') : '<p class="empty">Nothing yet — click "Run a cycle".</p>';
 
     const m = await (await fetch('/memories')).json();
-    const total = Object.values(m).reduce((s, items) => s + items.length, 0);
-    $('mem').innerHTML = total ? Object.entries(m).map(([scope, items]) =>
+    const total = Object.values(m).reduce((s,items)=>s+items.length,0);
+    $('mem').innerHTML = total ? Object.entries(m).map(([scope,items]) =>
       `<div class="scope">${scope} <span class="n">(${items.length})</span></div>` +
-      (items.length ? items.map(x => `<div>&bull; ${escapeHtml(x.text)}</div>`).join('')
+      (items.length ? items.slice(-12).map(x=>`<div class="item">&bull; ${escapeHtml(x.text)}</div>`).join('')
                     : '<div class="empty">— none —</div>')).join('')
       : '<p class="empty">No memories yet.</p>';
-  } catch (e) { setStatus('Could not reach the server.'); }
+  } catch(e){ setStatus('Could not reach the server.'); }
 }
 
-function escapeHtml(s) {
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function tick(){
+  if(busy) return; setBusy(true);
+  try { await fetch('/tick',{method:'POST'}); await refresh(); setStatus('Done.'); }
+  catch(e){ setStatus('Error running cycle.'); } finally { setBusy(false); }
 }
-
-async function tick() {
-  if (busy) return;
-  setBusy(true);
-  try { await fetch('/tick', {method:'POST'}); await refresh(); setStatus('Done.'); }
-  catch (e) { setStatus('Error running cycle.'); }
-  finally { setBusy(false); }
-}
-
-async function respond(i, d) {
-  await fetch(`/notifications/${i}/${d}`, {method:'POST'});
-  setStatus(d === 'dismiss' ? 'Dismissed — Sidekick learned a preference.' : 'Approved.');
+async function respond(i,d){
+  await fetch(`/notifications/${i}/${d}`,{method:'POST'});
+  setStatus(d==='dismiss'?'Dismissed — Sidekick learned a preference.':'Approved.');
   await refresh();
 }
-
-async function inject() {
-  const v = $('sig').value.trim(); if (!v || busy) return;
-  setBusy(true, 'Adding signal and running…');
+async function inject(){
+  const v=$('sig').value.trim(); if(!v||busy) return; setBusy(true,'Adding signal and running…');
   try {
-    await fetch('/signals', {method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({title: v})});
-    $('sig').value = '';
-    await fetch('/tick', {method:'POST'});
-    await refresh(); setStatus('Done.');
-  } catch (e) { setStatus('Error.'); }
-  finally { setBusy(false); }
+    await fetch('/signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:v})});
+    $('sig').value=''; await fetch('/tick',{method:'POST'}); await refresh(); setStatus('Done.');
+  } catch(e){ setStatus('Error.'); } finally { setBusy(false); }
 }
-
-function poll() { if (!busy) refresh().finally(() => setTimeout(poll, 5000)); else setTimeout(poll, 5000); }
+function poll(){ if(!busy) refresh().finally(()=>setTimeout(poll,5000)); else setTimeout(poll,5000); }
 refresh().finally(poll);
 </script>
 </body>
