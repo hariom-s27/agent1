@@ -69,10 +69,18 @@ def build_graph(memory: MemoryStore):
 
         if state.get("actions"):
             system = (
-                "From this assistant activity, extract (a) durable FACTS about the user worth "
-                "remembering long-term, and (b) reusable behavioral RULES. Only include things that "
-                "generalize beyond today. Empty lists are fine.\n"
-                'Respond as JSON: {"facts": ["..."], "rules": ["..."]}'
+                "You are curating LONG-TERM memory. Be very strict — most activity "
+                "should produce NOTHING. Only store knowledge still useful weeks from now.\n\n"
+                "FACTS = durable truths about the USER or their world that generalize.\n"
+                "  GOOD: 'User prefers replies under 4 sentences', 'User works on IC design'\n"
+                "  REJECT: anything about a specific meeting/email/task, any event, any\n"
+                "  restatement of what was just done, anything with a date or 'overdue'.\n\n"
+                "RULES = reusable behavioral preferences that apply to FUTURE situations.\n"
+                "  GOOD: 'Draft email replies in a concise tone'\n"
+                "  REJECT: one-time tasks like 'Confirm the 8x A100 config', anything tied\n"
+                "  to a specific project or deadline.\n\n"
+                "If nothing meets this bar, return empty lists. Empty is the COMMON case.\n"
+                'Respond as JSON: {"facts": [...], "rules": [...]}'
             )
             user = "\n".join(f"{a.kind} | {a.summary}\n{a.body}" for a in state["actions"])
             try:
